@@ -1,6 +1,6 @@
 /*
 京东京喜工厂
-更新时间：2020-11-30
+更新时间：2020-12-03
 活动入口 :京东APP->游戏与互动->查看更多->京喜工厂
 或者: 京东APP首页搜索 "玩一玩" ,造物工厂即可
 
@@ -32,7 +32,7 @@ const notify = $.isNode() ? require('./sendNotify') : '';
 let jdNotify = true;//是否关闭通知，false打开通知推送，true关闭通知推送
 const randomCount = $.isNode() ? 20 : 5;
 let cookiesArr = [], cookie = '', message = '';
-const inviteCodes = ['PDPM257r_KuQhil2Y7koNw==', "gB99tYLjvPcEFloDgamoBw=="];
+const inviteCodes = ['V5LkjP4WRyjeCKR9VRwcRX0bBuTz7MEK0-E99EJ7u0k=', 'PDPM257r_KuQhil2Y7koNw==', "gB99tYLjvPcEFloDgamoBw=="];
 const jdCookieNode = $.isNode() ? require('./jdCookie.js') : '';
 if ($.isNode()) {
   Object.keys(jdCookieNode).forEach((item) => {
@@ -86,13 +86,13 @@ if ($.isNode()) {
 
 async function jdDreamFactory() {
   await userInfo();
-  await JoinTuan();
+  await JoinTuan();//参团功能暂时无效，
   await helpFriends();
   if (!$.unActive) return
   await getUserElectricity();
   await taskList();
   await investElectric();
-  await hireAward();
+  await QueryHireReward();//收取招工电力
   await PickUp();
   await stealFriend();
   await showMsg();
@@ -125,7 +125,7 @@ function collectElectricity(facId = $.factoryId, help = false, master) {
                 message += `【帮助好友】帮助成功，获得 ${data.data['loginPinCollectElectricity']} 电力\n`
               } else {
                 $.ele += Number(data.data['CollectElectricity'])
-                console.log(`收取 ${data.data['loginPinCollectElectricity']} 电力`);
+                console.log(`收取 ${data.data['CollectElectricity']} 电力`);
                 message += `【收取发电站】收取成功，获得 ${data.data['CollectElectricity']} 电力\n`
               }
             } else {
@@ -246,13 +246,21 @@ function getUserElectricity() {
           if (safeGet(data)) {
             data = JSON.parse(data);
             if (data['ret'] === 0) {
-              console.log(`发电机：当前 ${data.data.currentElectricityQuantity} 电力，最大值 ${data.data.maxElectricityQuantity} 电力,达到最大电量才会进行收取`)
-              if (data.data.currentElectricityQuantity === data.data.maxElectricityQuantity && data.data.doubleElectricityFlag) {
-                console.log(`发电机：电力可翻倍并收获`)
-                // await shareReport();
-                await collectElectricity()
+              console.log(`\nnextCollectDoubleFlag::${data.data.nextCollectDoubleFlag}`);
+              console.log(`nextCollectDoubleType::${data.data.nextCollectDoubleType}\n`);
+              $.log(`下次集满收取${data.data.nextCollectDoubleFlag === 1 ? '可' : '不可'}双倍电力`)
+              console.log(`发电机：当前 ${data.data.currentElectricityQuantity} 电力，最大值 ${data.data.maxElectricityQuantity} 电力`)
+              if (data.data.nextCollectDoubleFlag === 1) {
+                if (data.data.currentElectricityQuantity === data.data.maxElectricityQuantity && data.data.doubleElectricityFlag) {
+                  console.log(`发电机：电力可翻倍并收获`)
+                  // await shareReport();
+                  await collectElectricity()
+                } else {
+                  message += `【发电机电力】当前 ${data.data.currentElectricityQuantity} 电力，未达到收获标准\n`
+                }
               } else {
-                message += `【发电机电力】当前 ${data.data.currentElectricityQuantity} 电力，未达到收获标准\n`
+                //再收取双倍电力达到上限时，直接收取，不再等到满级
+                await collectElectricity()
               }
             }
           }
@@ -297,11 +305,42 @@ function shareReport() {
     })
   })
 }
-// 收取招工电力
-function hireAward() {
+//查询有多少的招工电力可收取
+function QueryHireReward() {
   return new Promise(async resolve => {
     // const url = `/dreamfactory/friend/HireAward?zone=dream_factory&date=${new Date().Format("yyyyMMdd")}&type=0&sceneval=2&g_login_type=1`
-    $.get(taskurl('friend/HireAward', `date=${new Date().Format("yyyyMMdd")}&type=0`), async (err, resp, data) => {
+    $.get(taskurl('friend/QueryHireReward'), async (err, resp, data) => {
+      try {
+        if (err) {
+          console.log(`${JSON.stringify(err)}`)
+          console.log(`${$.name} API请求失败，请检查网路重试`)
+        } else {
+          if (safeGet(data)) {
+            data = JSON.parse(data);
+            if (data['ret'] === 0) {
+              for (let item of data['data']['hireReward']) {
+                if (item.date !== new Date(new Date().getTime() + new Date().getTimezoneOffset()*60*1000 + 8*60*60*1000).Format("yyyyMMdd")) {
+                  await hireAward(item.date);
+                }
+              }
+            } else {
+              console.log(`异常：${JSON.stringify(data)}`)
+            }
+          }
+        }
+      } catch (e) {
+        $.logErr(e, resp)
+      } finally {
+        resolve();
+      }
+    })
+  })
+}
+// 收取招工电力
+function hireAward(date) {
+  return new Promise(async resolve => {
+    // const url = `/dreamfactory/friend/HireAward?zone=dream_factory&date=${new Date().Format("yyyyMMdd")}&type=0&sceneval=2&g_login_type=1`
+    $.get(taskurl('friend/HireAward', `date=${date}&type=0`), async (err, resp, data) => {
       try {
         if (err) {
           console.log(`${JSON.stringify(err)}`)
@@ -333,7 +372,16 @@ async function helpFriends() {
         console.log(`不能为自己助力,跳过`);
         continue;
       }
-      await assistFriend(code);
+      const assistFriendRes = await assistFriend(code);
+      if (assistFriendRes && assistFriendRes['ret'] === 0) {
+        console.log(`助力朋友：${code}成功，因一次只能助力一个，故跳出助力`)
+        break
+      } else if (assistFriendRes && assistFriendRes['ret'] === 11009) {
+        console.log(`助力朋友[${code}]失败：${assistFriendRes.msg}，跳出助力`);
+        break
+      } else {
+        console.log(`助力朋友[${code}]失败：${assistFriendRes.msg}`)
+      }
     }
   }
 }
@@ -351,7 +399,7 @@ function assistFriend(sharepin) {
         "Cookie": cookie,
         "Host": "m.jingxi.com",
         "Referer": "https://st.jingxi.com/pingou/dream_factory/index.html",
-        "User-Agent": "jdpingou;iPhone;3.15.2;14.2;f803928b71d2fcd51c7eae549f7bc3062d17f63f;network/4g;model/iPhone11,8;appBuild/100365;ADID/0E38E9F1-4B4C-40A4-A479-DD15E58A5623;supportApplePay/1;hasUPPay/0;pushNoticeIsOpen/1;hasOCPay/0;supportBestPay/0;session/2;pap/JA2015_311210;brand/apple;supportJDSHWK/1;"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36"
       }
     }
     $.get(options, (err, resp, data) => {
@@ -362,17 +410,17 @@ function assistFriend(sharepin) {
         } else {
           if (safeGet(data)) {
             data = JSON.parse(data);
-            if (data['ret'] === 0) {
-              console.log(`助力朋友：${sharepin}成功`)
-            } else {
-              console.log(`助力朋友[${sharepin}]失败：${data.msg}`)
-            }
+            // if (data['ret'] === 0) {
+            //   console.log(`助力朋友：${sharepin}成功`)
+            // } else {
+            //   console.log(`助力朋友[${sharepin}]失败：${data.msg}`)
+            // }
           }
         }
       } catch (e) {
         $.logErr(e, resp)
       } finally {
-        resolve();
+        resolve(data);
       }
     })
   })
@@ -478,7 +526,7 @@ function userInfo() {
                 console.log(`生产进度：${((production.investedElectric / production.needElectric) * 100).toFixed(2)}%`);
                 message += `【京东账号${$.index}】${$.nickName}\n`
                 message += `【生产商品】${$.productName}\n`;
-                message += `【当前等级】${data.user.currentLevel}\n`;
+                message += `【当前等级】${data.user.userIdentity} ${data.user.currentLevel}\n`;
                 message += `【生产进度】${((production.investedElectric / production.needElectric) * 100).toFixed(2)}%\n`;
                 if (production.investedElectric >= production.needElectric) {
                   $.msg($.name, ``, `【京东账号${$.index}】${$.nickName}\n【生产商品】${$.productName}\n已生产完,请速去兑换`, {'open-url': 'openjd://virtual?params=%7B%20%22category%22:%20%22jump%22,%20%22des%22:%20%22m%22,%20%22url%22:%20%22https://wqsd.jd.com/pingou/dream_factory/index.html%22%20%7D'})
@@ -584,7 +632,7 @@ function PickUpComponent(index, encryptPin, help) {
             if (data['ret'] === 0) {
               data = data['data'];
               if (help) {
-                console.log(`收取好友零件成功:获得${data['increaseElectric']}电力\n`);
+                console.log(`收取好友[${encryptPin}]零件成功:获得${data['increaseElectric']}电力\n`);
                 $.pickFriendEle += data['increaseElectric'];
               } else {
                 console.log(`收取自家零件成功:获得${data['increaseElectric']}电力\n`);
@@ -592,7 +640,7 @@ function PickUpComponent(index, encryptPin, help) {
               }
             } else {
               if (help) {
-                console.log(`收好友零件失败：${JSON.stringify(data)}`)
+                console.log(`收好友[${encryptPin}]零件失败：${JSON.stringify(data)}`)
               } else {
                 console.log(`收零件失败：${JSON.stringify(data)}`)
               }
@@ -621,10 +669,13 @@ function stealFriend() {
             if (data['ret'] === 0) {
               data = data['data'];
               for (let i = 0; i < data.list.length; i++) {
-                let pin = data.list[i]['encryptPin'];
-                await getFactoryIdByPin(pin);
-                if ($.stealFactoryId) await collectElectricity($.stealFactoryId,true, data.list[i]['key']);
-                await PickUp(pin, true)
+                let pin = data.list[i]['encryptPin'];//好友的encryptPin
+                if (pin === 'V5LkjP4WRyjeCKR9VRwcRX0bBuTz7MEK0-E99EJ7u0k=' || pin === 'Bo-jnVs_m9uBvbRzraXcSA==') {
+                  continue
+                }
+                await PickUp(pin, true);
+                // await getFactoryIdByPin(pin);//获取好友工厂ID
+                // if ($.stealFactoryId) await collectElectricity($.stealFactoryId,true, pin);
               }
             } else {
               console.log(`异常：${JSON.stringify(data)}`)
@@ -712,7 +763,7 @@ function CreateTuan() {
 function JoinTuan() {
   return new Promise((resolve) => {
     const options = {
-      'url': `https://m.jingxi.com/dreamfactory/tuan/JoinTuan?activeId=${escape('ilOin38J30PcT9xnWbx9lw==')}&tuanId=${escape('8W4VdqMEQfzmZnSGRgMRCw==')}&_time=${Date.now()}&_=${Date.now()}&sceneval=2&g_login_type=1`,
+      'url': `https://m.jingxi.com/dreamfactory/tuan/JoinTuan?activeId=${escape('jfkcidGQavswLOBcAWljrw==')}&tuanId=${escape('CATqQ7rzehBqvRdZTpXgdA==')}&_time=${Date.now()}&_=${Date.now()}&sceneval=2&g_login_type=1`,
       "headers": {
         "Accept": "*/*",
         "Accept-Encoding": "gzip, deflate, br",
@@ -721,7 +772,7 @@ function JoinTuan() {
         "Cookie": cookie,
         "Host": "m.jingxi.com",
         "Referer": "https://st.jingxi.com/pingou/dream_factory/divide.html?exchange=%7B%22activeId%22:%22ilOin38J30PcT9xnWbx9lw%3D%3D%22,%22sTuanId%22:%22QvqM7GtgQQJUO8jaz1CYBA%3D%3D%22,%22sPin%22:%22V5LkjP4WRyjeCKR9VRwcRX0bBuTz7MEK0-E99EJ7u0k%3D%22,%22sType%22:%22101%22%7D&ptag=139022.1.2?srv=jinshusongjin_https://wq.jd.com/cube/front/activePublish/dream_factory_report/380556.html_jing",
-        "User-Agent": "jdpingou;iPhone;3.15.2;13.5.1;90bab9217f465a83a99c0b554a946b0b0d5c2f7a;network/wifi;model/iPhone12,1;appBuild/100365;ADID/696F8BD2-0820-405C-AFC0-3C6D028040E5;supportApplePay/1;hasUPPay/0;pushNoticeIsOpen/1;hasOCPay/0;supportBestPay/0;session/14;pap/JA2015_311210;brand/apple;supportJDSHWK/1;"
+        "User-Agent": "jdpingou"
       }
     }
     $.get(options, (err, resp, data) => {
@@ -762,6 +813,9 @@ async function showMsg() {
       if ($.isNode()) {
         await notify.sendNotify(`${$.name} - 账号${$.index} - ${$.nickName}`, `${message}\n【收取零件】获得${$.pickEle}电力`);
       }
+    } else if (new Date().getHours() === 22) {
+      $.msg($.name, '', `${message}【收取自己零件】获得${$.pickEle}电力\n【收取好友零件】获得${$.pickFriendEle}电力`)
+      $.log(`\n${message}【收取自己零件】获得${$.pickEle}电力\n【收取好友零件】获得${$.pickFriendEle}电力`);
     } else {
       $.log(`\n${message}【收取自己零件】获得${$.pickEle}电力\n【收取好友零件】获得${$.pickFriendEle}电力`);
     }
