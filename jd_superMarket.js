@@ -37,7 +37,7 @@ const JD_API_HOST = 'https://api.m.jd.com/api';
 //下面给出两个账号的填写示例（iOS只支持2个京东账号）
 let shareCodes = [ // IOS本地脚本用户这个列表填入你要助力的好友的shareCode
   //账号一的好友shareCode,不同好友的shareCode中间用@符号隔开
-  'eU9wPbLlMaNj827UyQ@eU9YDJXqBLl5qxaPuBdA@eU9YaejjYv4g8T2EwnsVhQ',
+  'eU9wPbLlMaNj827UyQ@eU9YDJXqBLl5qxaPuBdA@eU9Yar_mb_9z92_WmXNG0w@eU9YaejjYv4g8T2EwnsVhQ',
   //账号二的好友shareCode,不同好友的shareCode中间用@符号隔开
   'eU9wPbLlMaNj827UyQ@eU9YDJXqBLl5qxaPuBdA@eU9Ya-y2N_5z9DvXwyIV0A@eU9YaOnjYK4j-GvWmXIWhA',
 ]
@@ -1457,7 +1457,7 @@ function jsonParse(str) {
       return JSON.parse(str);
     } catch (e) {
       console.log(e);
-      $.msg($.name, '', '不要在BoxJS手动复制粘贴修改cookie')
+      $.msg($.name, '', '请勿随意在BoxJs输入框修改内容\n建议通过脚本去获取cookie')
       return [];
     }
   }
