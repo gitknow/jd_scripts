@@ -30,9 +30,9 @@ let cookiesArr = [], cookie = '', jdPetShareArr = [], isBox = false, notify, new
 //下面给出两个账号的填写示例（iOS只支持2个京东账号）
 let shareCodes = [ // IOS本地脚本用户这个列表填入你要助力的好友的shareCode
    //账号一的好友shareCode,不同好友的shareCode中间用@符号隔开
-  'MTEzMzI0OTE0NTAwMDAwMDA0MTk0MDEyMQ==@MTAxODc2NTEzOTAwMDAwMDAyMTMyNDU1Nw==@MTAxODc2NTEzMjAwMDAwMDAzMDI3MTMyOQ==@MTAxODc2NTEzNDAwMDAwMDAzMDI2MDI4MQ==@MTAxODcxOTI2NTAwMDAwMDAxOTQ3MjkzMw==',
+  'MTEzMzI0OTE0NTAwMDAwMDA0MTk0MDEyMQ==@MTAxODc2NTEzOTAwMDAwMDAyMTMyNDU1Nw==@MTAxODc2NTEzMzAwMDAwMDAyNzUwMDA4MQ==@MTAxODc2NTEzMjAwMDAwMDAzMDI3MTMyOQ==@MTAxODc2NTEzNDAwMDAwMDAzMDI2MDI4MQ==@MTAxODcxOTI2NTAwMDAwMDAxOTQ3MjkzMw==',
   //账号二的好友shareCode,不同好友的shareCode中间用@符号隔开
-  'MTEzMzI0OTE0NTAwMDAwMDA0MTk0MDEyMQ==@MTAxODc2NTEzOTAwMDAwMDAyMTMyNDU1Nw==@MTAxODcxOTI2NTAwMDAwMDAyNjA4ODQyMQ==@MTAxODc2NTEzOTAwMDAwMDAyNzE2MDY2NQ==',
+  'MTEzMzI0OTE0NTAwMDAwMDA0MTk0MDEyMQ==@MTAxODc2NTEzOTAwMDAwMDAyMTMyNDU1Nw==@MTAxODcxOTI2NTAwMDAwMDAyNjA4ODQyMQ==@MTAxODc2NTEzOTAwMDAwMDAyNzE2MDY2NQ==@MTE1NDUyMjEwMDAwMDAwNDI0MDM2MDc=',
 ]
 let message = '', subTitle = '', option = {};
 let jdNotify = false;//是否关闭通知，false打开通知推送，true关闭通知推送
@@ -59,8 +59,6 @@ let randomCount = $.isNode() ? 20 : 5;
 
         if ($.isNode()) {
           await notify.sendNotify(`${$.name}cookie已失效 - ${$.UserName}`, `京东账号${$.index} ${$.UserName}\n请重新登录获取cookie`);
-        } else {
-          $.setdata('', `CookieJD${i ? i + 1 : "" }`);//cookie失效，故清空cookie。$.setdata('', `CookieJD${i ? i + 1 : "" }`);//cookie失效，故清空cookie。
         }
         continue
       }
@@ -115,7 +113,7 @@ async function jdPet() {
       }
       return
     }
-    console.log(`\n【您的互助码shareCode】 ${$.petInfo.shareCode}\n`);
+    console.log(`\n【京东账号${$.index}（${$.nickName || $.UserName}）的${$.name}好友互助码】${$.petInfo.shareCode}\n`);
     await taskInit();
     if ($.taskInit.resultCode === '9999' || !$.taskInit.result) {
       console.log('初始化任务异常, 请稍后再试');
