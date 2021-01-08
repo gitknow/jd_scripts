@@ -1,0 +1,25 @@
+name: Github jd_car_exchange bot
+
+on:
+    push:
+        branches:
+            - master
+    schedule:
+        - cron: '0,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59 15,16 * * *'
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout codes
+              uses: actions/checkout@v2
+            - name: Use Node.js
+              uses: actions/setup-node@v1
+              with:
+                node-version: '12.x'
+            - name: Run app
+              run: npm install
+            - run: node jd_car_exchange.js
+              env:
+                JD_COOKIE: ${{ secrets.JD_COOKIE }}
+                PUSH_KEY: ${{ secrets.PUSH_KEY }}
